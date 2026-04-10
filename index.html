@@ -47,6 +47,24 @@ hr{border:none;border-bottom:0.5px solid #d0ccc0;}
 <script type="text/babel">
 const {useState,useEffect,useCallback,useRef}=React;
 
+const SUPABASE_URL='https://jriduffggpmmjcgwsqxj.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpyaWR1ZmZnZ3BtbWpjZ3dzcXhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0MDQ3NDksImV4cCI6MjA4NTk4MDc0OX0.Gntv0fOJU6ImcOVMhJKT3oh4dirJPxdSCRK0zo8luAs';
+
+const sbFetch=(path,opts={})=>fetch(`${SUPABASE_URL}/rest/v1/${path}`,{
+  ...opts,
+  headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal',...(opts.headers||{})},
+});
+
+async function loadSnapshots(){
+  const r=await sbFetch('snapshots?select=*&order=created_at.asc');
+  if(!r.ok)return[];
+  return r.json();
+}
+
+async function saveSnapshot(label,round,scores){
+  await sbFetch('snapshots',{method:'POST',body:JSON.stringify({label,round,scores})});
+}
+
 const TEAMS=[
   {name:"WillyGPicks",picks:["Jason Day","Scottie Scheffler","Xander Schauffele","Brooks Koepka","Jordan Spieth","Justin Thomas","Ludvig Aberg","Tyrrell Hatton","Corey Conners","Viktor Hovland","Angel Cabrera","Fifa Laopakdee"]},
   {name:"2 Guys 1 Masters",picks:["Scottie Scheffler","Shane Lowry","Xander Schauffele","Tommy Fleetwood","Jordan Spieth","Justin Thomas","Ethan Fang","Tyrrell Hatton","Si Woo Kim","Bryson DeChambeau","Min Woo Lee","Angel Cabrera"]},
@@ -238,33 +256,57 @@ function App(){
   // Assign consistent colors to teams
   const teamColors=TEAMS.reduce((acc,t,i)=>{acc[t.name]=PALETTE[i%PALETTE.length];return acc;},{});
 
-  // Seed snapshots with R1/R2 history using hardcoded rounds=1,2
+  // Load snapshots from Supabase on mount, fall back to hardcoded seed
   useEffect(()=>{
-    const seeded=HISTORY_SEED.map((h,i)=>{
+    const seed=HISTORY_SEED.map((h,i)=>{
       const fakeStandings=TEAMS.map(t=>({name:t.name,total:h.scores[t.name]??50})).sort((a,b)=>a.total-b.total);
-      const withProbs=calcProbs(fakeStandings, i+1);
+      const withProbs=calcProbs(fakeStandings,i+1);
       const probs=Object.fromEntries(withProbs.map(t=>[t.name,t.prob]));
       return{label:h.label,scores:h.scores,probs};
     });
-    snapsRef.current=seeded;
-    setSnapshots(seeded);
+    loadSnapshots().then(rows=>{
+      if(!rows||rows.length===0){
+        snapsRef.current=seed;setSnapshots(seed);return;
+      }
+      // Merge seed + db rows, db rows override by label
+      const dbSnaps=rows.map(row=>{
+        const sc=row.scores;
+        const fakeStandings=TEAMS.map(t=>({name:t.name,total:sc[t.name]??50})).sort((a,b)=>a.total-b.total);
+        const withProbs=calcProbs(fakeStandings,row.round||2);
+        const probs=Object.fromEntries(withProbs.map(t=>[t.name,t.prob]));
+        return{label:row.label,scores:sc,probs};
+      });
+      // Use seed for R1/R2, then db rows for everything after
+      const dbLabels=new Set(dbSnaps.map(s=>s.label));
+      const seedFiltered=seed.filter(s=>!dbLabels.has(s.label));
+      const merged=[...seedFiltered,...dbSnaps].sort((a,b)=>{
+        const order=['R1','R2'];
+        const ai=order.indexOf(a.label);const bi=order.indexOf(b.label);
+        if(ai>=0&&bi>=0)return ai-bi;
+        if(ai>=0)return -1;if(bi>=0)return 1;
+        return a.label.localeCompare(b.label);
+      });
+      snapsRef.current=merged;setSnapshots(merged);
+    }).catch(()=>{snapsRef.current=seed;setSnapshots(seed);});
   },[]);
 
   const addSnapshot=(currentStandings, rd, label)=>{
     const scores=Object.fromEntries(currentStandings.map(t=>[t.name,t.total]));
     const prev=snapsRef.current;
-    // Only add if scores have actually changed since last live snapshot
+    // Only add if scores have actually changed since last snapshot
     if(prev.length>0){
       const last=prev[prev.length-1];
       const changed=currentStandings.some(t=>last.scores[t.name]!==scores[t.name]);
       if(!changed)return;
     }
-    const withProbs=calcProbs(currentStandings, rd);
+    const withProbs=calcProbs(currentStandings,rd);
     const probs=Object.fromEntries(withProbs.map(t=>[t.name,t.prob]));
     const snap={label,scores,probs};
     const next=[...prev,snap];
     snapsRef.current=next;
     setSnapshots(next);
+    // Persist to Supabase
+    saveSnapshot(label,rd,scores).catch(()=>{});
   };
 
   const fetchData=useCallback(async()=>{
@@ -444,3 +486,4 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
 </html>
+

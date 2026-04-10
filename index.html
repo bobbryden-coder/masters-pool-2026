@@ -251,13 +251,17 @@ function App(){
   },[]);
 
   const addSnapshot=(currentStandings, rd, label)=>{
+    const scores=Object.fromEntries(currentStandings.map(t=>[t.name,t.total]));
+    const prev=snapsRef.current;
+    // Only add if scores have actually changed since last live snapshot
+    if(prev.length>0){
+      const last=prev[prev.length-1];
+      const changed=currentStandings.some(t=>last.scores[t.name]!==scores[t.name]);
+      if(!changed)return;
+    }
     const withProbs=calcProbs(currentStandings, rd);
     const probs=Object.fromEntries(withProbs.map(t=>[t.name,t.prob]));
-    const scores=Object.fromEntries(currentStandings.map(t=>[t.name,t.total]));
     const snap={label,scores,probs};
-    // Don't duplicate if label same as last
-    const prev=snapsRef.current;
-    if(prev.length>0&&prev[prev.length-1].label===label)return;
     const next=[...prev,snap];
     snapsRef.current=next;
     setSnapshots(next);

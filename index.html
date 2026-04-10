@@ -48,21 +48,28 @@ hr{border:none;border-bottom:0.5px solid #d0ccc0;}
 const {useState,useEffect,useCallback,useRef}=React;
 
 const SUPABASE_URL='https://jriduffggpmmjcgwsqxj.supabase.co';
-const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpyaWR1ZmZnZ3BtbWpjZ3dzcXhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0MDQ3NDksImV4cCI6MjA4NTk4MDc0OX0.Gntv0fOJU6ImcOVMhJKT3oh4dirJPxdSCRK0zo8luAs';
-
-const sbFetch=(path,opts={})=>fetch(`${SUPABASE_URL}/rest/v1/${path}`,{
-  ...opts,
-  headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal',...(opts.headers||{})},
-});
+const SUPABASE_KEY='sb_publishable_vIZbEvNK2YAvCOogh_8Wzg_57wW3y5V';
 
 async function loadSnapshots(){
-  const r=await sbFetch('snapshots?select=*&order=created_at.asc');
-  if(!r.ok)return[];
-  return r.json();
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/snapshots?select=*&order=created_at.asc`,{
+      headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`}
+    });
+    if(!r.ok)return[];
+    return r.json();
+  }catch(e){return[];}
 }
 
 async function saveSnapshot(label,round,scores){
-  await sbFetch('snapshots',{method:'POST',body:JSON.stringify({label,round,scores})});
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/snapshots`,{
+      method:'POST',
+      headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json'},
+      body:JSON.stringify({label,round,scores})
+    });
+    const txt=await r.text();
+    console.log('Supabase write:',r.status,txt);
+  }catch(e){console.error('Supabase write error:',e);}
 }
 
 const TEAMS=[
@@ -339,7 +346,7 @@ function App(){
       // Compute current standings and add snapshot
       const cur=TEAMS.map(t=>({name:t.name,...calcTeam(t.picks,sc,cut)})).sort((a,b)=>a.total-b.total);
       const now=new Date();
-      const timeLabel=`R${maxRounds} ${now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`;
+      const timeLabel=`R${maxRounds} ${now.toUTCString().slice(17,22)} UTC`;
       addSnapshot(cur,maxRounds,timeLabel);
     }catch(e){
       setErr('Live scores unavailable');setLoading(false);

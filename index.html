@@ -247,6 +247,89 @@ function ScoreChart({snapshots, teamColors}){
   );
 }
 
+
+function WoodenSpoonChart({snapshots, teamColors}){
+  const ref=useRef(null);
+  const inst=useRef(null);
+
+  useEffect(()=>{
+    if(!ref.current||snapshots.length<1)return;
+    const labels=snapshots.map(s=>s.label);
+    const latest=snapshots[snapshots.length-1];
+    // Last place probability = inverted win prob — highest score = most likely last
+    const ranked=Object.entries(latest.scores).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    // Compute last-place probs: exponential on score (higher score = more likely last)
+    const alpha=0.15;
+    const maxScore=Math.max(...Object.values(latest.scores));
+    const weights=ranked.map(([,s])=>Math.exp(alpha*(s-maxScore+20)));
+    const sum=weights.reduce((a,b)=>a+b,0);
+    const lastProbs=Object.fromEntries(ranked.map(([name],i)=>[name,(weights[i]/sum)*100]));
+    const datasets=ranked.map(([name])=>({
+      label:name,
+      data:snapshots.map(s=>{
+        const allScores=Object.values(s.scores);
+        const mx=Math.max(...allScores);
+        const ws=ranked.map(([n])=>Math.exp(alpha*((s.scores[n]??0)-mx+20)));
+        const sm=ws.reduce((a,b)=>a+b,0);
+        return parseFloat(((ws[ranked.findIndex(([n])=>n===name)]/sm)*100).toFixed(2));
+      }),
+      borderColor:teamColors[name]||'#888',
+      backgroundColor:'transparent',
+      borderWidth:2,
+      pointRadius:3,
+      tension:0.3,
+    }));
+    if(inst.current){
+      inst.current.data.labels=labels;
+      inst.current.data.datasets=datasets;
+      inst.current.update();
+    }else{
+      inst.current=new Chart(ref.current,{
+        type:'line',
+        data:{labels,datasets},
+        options:{
+          responsive:true,maintainAspectRatio:false,
+          interaction:{mode:'index',intersect:false},
+          plugins:{
+            legend:{display:false},
+            tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y.toFixed(1)}%`}},
+          },
+          scales:{
+            x:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:11},color:'#888'}},
+            y:{min:0,grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:11},color:'#888',callback:v=>v+'%'}},
+          },
+        }
+      });
+    }
+  },[snapshots]);
+
+  useEffect(()=>()=>{inst.current?.destroy();},[]);
+
+  if(snapshots.length<1)return null;
+
+  const latest=snapshots[snapshots.length-1];
+  const ranked=Object.entries(latest.scores).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const alpha=0.15;
+  const maxScore=Math.max(...Object.values(latest.scores));
+  const weights=ranked.map(([,s])=>Math.exp(alpha*(s-maxScore+20)));
+  const sum=weights.reduce((a,b)=>a+b,0);
+  const lastProbs=ranked.map(([name],i)=>([name,(weights[i]/sum)*100]));
+
+  return(
+    <div>
+      <div className="legend">
+        {lastProbs.map(([name,prob])=>(
+          <div className="legend-item" key={name}>
+            <div className="legend-dot" style={{background:teamColors[name]||'#888'}}></div>
+            <span>{name} <strong>{prob.toFixed(1)}%</strong></span>
+          </div>
+        ))}
+      </div>
+      <div className="chart-wrap" style={{height:260}}><canvas ref={ref}></canvas></div>
+    </div>
+  );
+}
+
 function App(){
   const [pScores,setPScores]=useState({});
   const [cutSet,setCutSet]=useState(new Set());
@@ -457,6 +540,13 @@ function App(){
           <div className="lbl" style={{margin:'1.2rem 0 8px'}}>Team score over rounds — top 8</div>
           <div style={{fontSize:11,color:'#888',marginBottom:6}}>Lower is better. Same 8 teams as above.</div>
           <ScoreChart snapshots={snapshots} teamColors={teamColors}/>
+          <div style={{borderTop:'1px solid #d0ccc0',margin:'1.5rem 0 1rem',paddingTop:'1rem'}}>
+            <div style={{fontSize:13,color:'#555',marginBottom:'.75rem',lineHeight:1.6}}>
+              The battle for last. Bottom 5 teams fighting to avoid finishing the week staring at the back nine.
+            </div>
+            <div className="lbl" style={{marginBottom:8}}>The Back Nine — bottom 5</div>
+            <WoodenSpoonChart snapshots={snapshots} teamColors={teamColors}/>
+          </div>
           <div className="note" style={{marginTop:'1rem'}}>
             Charts accumulate snapshots throughout the session — reload resets live data but keeps R1/R2 seed. {snapshots.length} data points recorded.
           </div>
@@ -493,4 +583,5 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
 </html>
+
 

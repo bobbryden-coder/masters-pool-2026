@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>The Long Journey Is Over · Masters 2026</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#f5f2eb;font-family:Georgia,serif;color:#1a1a1a;min-height:100vh;}
+.shell{max-width:720px;margin:0 auto;padding:1.5rem 1rem 4rem;}
+button{font-family:Georgia,serif;cursor:pointer;}
+.tabs{display:flex;gap:6px;margin-bottom:1.1rem;}
+.tab{padding:5px 16px;font-size:13px;border-radius:5px;transition:all 0.15s;border:1px solid #ccc;background:transparent;color:#555;}
+.tab:hover{background:#ede9df;}
+.tab.on{background:#1a5c2a;color:#fff;border-color:#1a5c2a;}
+.row{display:grid;align-items:center;padding:7px 4px;border-radius:5px;cursor:pointer;transition:background 0.1s;}
+.row:hover{background:#ece8df;}
+.bob{background:#edf5e9;border-left:3px solid #1a5c2a;}
+.bob:hover{background:#e1efdb;}
+hr{border:none;border-bottom:0.5px solid #d0ccc0;}
+.under{color:#1a6b35;font-weight:500;}
+.even{color:#555;}
+.over1{color:#b85c00;font-weight:500;}
+.over2{color:#a81c1c;font-weight:500;}
+.lbl{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#888;margin:10px 0 5px;}
+.pill{display:inline-block;font-size:10px;padding:2px 7px;border-radius:10px;background:#d4e8d9;color:#1a5c2a;vertical-align:middle;margin-left:6px;}
+.note{font-size:11px;color:#777;padding:8px 10px;background:#ede9e0;border-radius:6px;margin-top:.9rem;}
+.back{font-size:12px;padding:4px 12px;border:1px solid #ccc;border-radius:4px;background:transparent;color:#555;margin-bottom:.9rem;}
+.back:hover{background:#eee;}
+.hdr-col{font-size:11px;color:#888;padding:0 4px 5px;border-bottom:1px solid #d0ccc0;margin-bottom:3px;}
+.chart-wrap{position:relative;width:100%;margin:1rem 0;}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin-bottom:.6rem;}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:12px;color:#444;}
+.legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+@media(max-width:480px){
+  .hide-sm{display:none;}
+  .shell{padding:1rem .75rem 3rem;}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useCallback,useRef}=React;
+
+const TEAMS=[
+  {name:"WillyGPicks",picks:["Jason Day","Scottie Scheffler","Xander Schauffele","Brooks Koepka","Jordan Spieth","Justin Thomas","Ludvig Aberg","Tyrrell Hatton","Corey Conners","Viktor Hovland","Angel Cabrera","Fifa Laopakdee"]},
+  {name:"2 Guys 1 Masters",picks:["Scottie Scheffler","Shane Lowry","Xander Schauffele","Tommy Fleetwood","Jordan Spieth","Justin Thomas","Ethan Fang","Tyrrell Hatton","Si Woo Kim","Bryson DeChambeau","Min Woo Lee","Angel Cabrera"]},
+  {name:"Spieth Time",picks:["Jason Day","Scottie Scheffler","Xander Schauffele","Jacob Bridgeman","Brooks Koepka","Jordan Spieth","Jose Maria Olazabal","Ludvig Aberg","Viktor Hovland","Harry Hall","Mason Howell","Min Woo Lee"]},
+  {name:"Zurich Rehab Center",picks:["Rory McIlroy","Shane Lowry","Tommy Fleetwood","Adam Scott","Jordan Spieth","Collin Morikawa","Ethan Fang","J.J. Spaun","Corey Conners","Bryson DeChambeau","Vijay Singh","Robert MacIntyre"]},
+  {name:"Hillary Clitoris",picks:["Kurt Kitayama","Scottie Scheffler","Shane Lowry","Brooks Koepka","Cameron Young","Ethan Fang","Ludvig Aberg","Corey Conners","Viktor Hovland","Patrick Cantlay","Min Woo Lee","Vijay Singh"]},
+  {name:"Knapp Time",picks:["Justin Rose","Adam Scott","Brooks Koepka","Hideki Matsuyama","Justin Thomas","Cameron Young","Harris English","Tyrrell Hatton","Nicolai Hojgaard","Sungjae Im","Angel Cabrera","Fifa Laopakdee"]},
+  {name:"Woodsy",picks:["Jason Day","Scottie Scheffler","Tommy Fleetwood","Jordan Spieth","Justin Thomas","Ethan Fang","Ludvig Aberg","Viktor Hovland","Bryson DeChambeau","Min Woo Lee","Vijay Singh","Robert MacIntyre"]},
+  {name:"Back to your shanty",picks:["Jason Day","Scottie Scheffler","Xander Schauffele","Jordan Spieth","Ethan Fang","Ludvig Aberg","Si Woo Kim","Viktor Hovland","Bryson DeChambeau","Patrick Cantlay","Vijay Singh","Robert MacIntyre"]},
+  {name:"Dustin my Johnson",picks:["Jason Day","Kurt Kitayama","Scottie Scheffler","Tommy Fleetwood","Justin Thomas","Ludvig Aberg","Si Woo Kim","Bryson DeChambeau","Alexander Noren","Vijay Singh","Fifa Laopakdee","Robert MacIntyre"]},
+  {name:"TW Auto Insurance",picks:["Scottie Scheffler","Tommy Fleetwood","Brooks Koepka","Justin Thomas","Ethan Fang","J.J. Spaun","Ludvig Aberg","Corey Conners","Si Woo Kim","Viktor Hovland","Robert MacIntyre","Mike Weir"]},
+  {name:"Saudi backed",picks:["Scottie Scheffler","Shane Lowry","Brooks Koepka","Jordan Spieth","Ethan Fang","Ludvig Aberg","Matt Fitzpatrick","Si Woo Kim","Viktor Hovland","Sungjae Im","Maverick McNealy","Angel Cabrera"]},
+  {name:"Magnolia Madness",picks:["Jason Day","Scottie Scheffler","Justin Thomas","Collin Morikawa","J.J. Spaun","Ludvig Aberg","Si Woo Kim","Viktor Hovland","Bryson DeChambeau","Nicolai Hojgaard","Vijay Singh","Fifa Laopakdee"]},
+  {name:"Augusta These Nuts",picks:["Scottie Scheffler","Xander Schauffele","Jordan Spieth","Ethan Fang","J.J. Spaun","Ludvig Aberg","Si Woo Kim","Viktor Hovland","Bryson DeChambeau","Fred Couples","Min Woo Lee","Robert MacIntyre"]},
+  {name:"Hydrocodone heroes",picks:["Scottie Scheffler","Xander Schauffele","Jordan Spieth","Ethan Fang","Ludvig Aberg","Corey Conners","Si Woo Kim","Viktor Hovland","Bryson DeChambeau","Patrick Cantlay","Angel Cabrera","Robert MacIntyre"]},
+  {name:"Rolling Range Rover",picks:["Rory McIlroy","Shane Lowry","Cameron Young","J.J. Spaun","Matt Fitzpatrick","Si Woo Kim","Viktor Hovland","Bryson DeChambeau","Mason Howell","Patrick Cantlay","Min Woo Lee","Angel Cabrera"]},
+  {name:"JBell",picks:["Scottie Scheffler","Justin Thomas","Cameron Young","Sepp Straka","Ethan Fang","J.J. Spaun","Ludvig Aberg","Si Woo Kim","Bryson DeChambeau","Min Woo Lee","Vijay Singh","Robert MacIntyre"]},
+  {name:"Hardy",picks:["Xander Schauffele","Jordan Spieth","Ethan Fang","J.J. Spaun","Ludvig Aberg","Si Woo Kim","Viktor Hovland","Bryson DeChambeau","Nicolai Hojgaard","Sungjae Im","Fred Couples","Jon Rahm"]},
+  {name:"Trying Me Hardest",picks:["Shane Lowry","Xander Schauffele","Jake Knapp","Matt Fitzpatrick","Corey Conners","Si Woo Kim","Bryson DeChambeau","Jackson Herrington","Patrick Cantlay","Jon Rahm","Robert MacIntyre","Mike Weir"]},
+  {name:"Tigers Driver",picks:["Justin Rose","Adam Scott","Jordan Spieth","Jake Knapp","Ludvig Aberg","Viktor Hovland","Bryson DeChambeau","Mason Howell","Jon Rahm","Min Woo Lee","Angel Cabrera","Robert MacIntyre"]},
+  {name:"Uber 4 Tiger",picks:["Tommy Fleetwood","Jake Knapp","Sepp Straka","J.J. Spaun","Ludvig Aberg","Corey Conners","Viktor Hovland","Bryson DeChambeau","Jackson Herrington","Fred Couples","Jon Rahm","Min Woo Lee"]},
+  {name:"Where is WOODS!",picks:["Tommy Fleetwood","Jordan Spieth","Cameron Young","Ethan Fang","Corey Conners","Viktor Hovland","Bryson DeChambeau","Marco Penge","Patrick Cantlay","Jon Rahm","Min Woo Lee","Vijay Singh"]},
+  {name:"The DUI Green Jacket",picks:["Scottie Scheffler","Akshay Bhatia","J.J. Spaun","Ludvig Aberg","Corey Conners","Si Woo Kim","Bryson DeChambeau","Marco Penge","Harry Hall","Patrick Cantlay","Fifa Laopakdee","Mike Weir"]},
+];
+
+// Seeded historical snapshots — R1 and R2 end-of-round totals
+const HISTORY_SEED=[
+  {label:"R1",scores:{"WillyGPicks":-3,"2 Guys 1 Masters":-3,"Zurich Rehab Center":-1,"Spieth Time":1,"Dustin my Johnson":3,"Woodsy":3,"Back to your shanty":4,"TW Auto Insurance":6,"Augusta These Nuts":6,"Hillary Clitoris":7,"Knapp Time":7,"Saudi backed":7,"Magnolia Madness":9,"Hydrocodone heroes":9,"JBell":9,"Hardy":14,"Tigers Driver":15,"Rolling Range Rover":15,"Trying Me Hardest":17,"Uber 4 Tiger":17,"The DUI Green Jacket":19,"Where is WOODS!":22}},
+  {label:"R2",scores:{"WillyGPicks":3,"2 Guys 1 Masters":4,"Spieth Time":4,"Zurich Rehab Center":5,"Hillary Clitoris":9,"Knapp Time":10,"Woodsy":11,"Back to your shanty":12,"Dustin my Johnson":12,"TW Auto Insurance":12,"Saudi backed":12,"Magnolia Madness":15,"Augusta These Nuts":18,"Hydrocodone heroes":18,"Rolling Range Rover":18,"JBell":19,"Hardy":22,"Trying Me Hardest":24,"Tigers Driver":25,"Uber 4 Tiger":25,"Where is WOODS!":27,"The DUI Green Jacket":27}},
+];
+
+const PALETTE=["#1a5c2a","#2171b5","#d4711a","#7b2fa0","#a81c1c","#1b7a8a","#8c6d31","#2d4f9e","#c45c12","#165c3a","#5c2171","#8a3a1b","#1b5c8a","#6b4e1a","#2a7a3a","#8a1b5c","#4e5c2a","#1b3a8a","#8a5c1b","#2a1a6b","#8a2a1b","#1a5c5c"];
+
+const ALIASES={"Ludvig Aberg":"Ludvig Åberg","Nicolai Hojgaard":"Nicolai Højgaard","Rasmus Hojgaard":"Rasmus Højgaard","Jose Maria Olazabal":"José María Olazábal","Angel Cabrera":"Ángel Cabrera"};
+const norm=n=>(ALIASES[n]||n).toLowerCase().replace(/[éèêë]/g,'e').replace(/[áàâäå]/g,'a').replace(/[øó]/g,'o').replace(/[^a-z0-9 .]/g,'').trim();
+const fmt=s=>s===0?'E':s>0?`+${s}`:`${s}`;
+const scCls=s=>s<0?'under':s===0?'even':s<=4?'over1':'over2';
+const parse=v=>{if(!v||v==='E'||v==='Even')return 0;const n=parseInt(v,10);return isNaN(n)?0:n;};
+const pct=v=>v.toFixed(1)+'%';
+
+function calcProbs(standings, roundsDone){
+  const alpha=Math.max(0.08, roundsDone*0.08);
+  const leader=standings[0].total;
+  const weights=standings.map(t=>Math.exp(-alpha*(t.total-leader)));
+  const sum=weights.reduce((a,b)=>a+b,0);
+  return standings.map((t,i)=>({...t,prob:(weights[i]/sum)*100}));
+}
+
+function calcTeam(picks, pScores, cutSet){
+  const all=picks.map(p=>{
+    const k=norm(p);
+    if(cutSet.has(k))return{name:p,s:4,cut:true,miss:false};
+    const s=pScores[k];
+    return{name:p,s:s!==undefined?s:0,cut:false,miss:s===undefined};
+  });
+  const srt=[...all].sort((a,b)=>a.s-b.s);
+  return{total:srt.slice(0,10).reduce((t,p)=>t+p.s,0),all,top10:srt.slice(0,10),bench:srt.slice(10)};
+}
+
+function WinChart({snapshots, teamColors}){
+  const ref=useRef(null);
+  const inst=useRef(null);
+
+  useEffect(()=>{
+    if(!ref.current||snapshots.length<1)return;
+    const labels=snapshots.map(s=>s.label);
+    // top 8 by latest win prob
+    const latest=snapshots[snapshots.length-1];
+    const ranked=Object.entries(latest.probs).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    const datasets=ranked.map(([name])=>({
+      label:name,
+      data:snapshots.map(s=>parseFloat((s.probs[name]||0).toFixed(2))),
+      borderColor:teamColors[name]||'#888',
+      backgroundColor:'transparent',
+      borderWidth:2,
+      pointRadius:3,
+      pointHoverRadius:5,
+      tension:0.3,
+    }));
+    if(inst.current){
+      inst.current.data.labels=labels;
+      inst.current.data.datasets=datasets;
+      inst.current.update();
+    }else{
+      inst.current=new Chart(ref.current,{
+        type:'line',
+        data:{labels,datasets},
+        options:{
+          responsive:true,maintainAspectRatio:false,
+          interaction:{mode:'index',intersect:false},
+          plugins:{
+            legend:{display:false},
+            tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y.toFixed(1)}%`}},
+          },
+          scales:{
+            x:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:11},color:'#888'}},
+            y:{min:0,grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:11},color:'#888',callback:v=>v+'%'}},
+          },
+        }
+      });
+    }
+    return()=>{};
+  },[snapshots]);
+
+  useEffect(()=>()=>{inst.current?.destroy();},[]);
+
+  if(snapshots.length<1)return <div style={{padding:'2rem',textAlign:'center',fontSize:13,color:'#888'}}>Loading chart data…</div>;
+
+  const latest=snapshots[snapshots.length-1];
+  const ranked=Object.entries(latest.probs).sort((a,b)=>b[1]-a[1]).slice(0,8);
+
+  return(
+    <div>
+      <div className="legend">
+        {ranked.map(([name,prob])=>(
+          <div className="legend-item" key={name}>
+            <div className="legend-dot" style={{background:teamColors[name]||'#888'}}></div>
+            <span>{name} <strong>{prob.toFixed(1)}%</strong></span>
+          </div>
+        ))}
+      </div>
+      <div className="chart-wrap" style={{height:300}}><canvas ref={ref}></canvas></div>
+    </div>
+  );
+}
+
+function ScoreChart({snapshots, teamColors}){
+  const ref=useRef(null);
+  const inst=useRef(null);
+
+  useEffect(()=>{
+    if(!ref.current||snapshots.length<1)return;
+    const labels=snapshots.map(s=>s.label);
+    const latest=snapshots[snapshots.length-1];
+    const ranked=Object.entries(latest.probs).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    const datasets=ranked.map(([name])=>({
+      label:name,
+      data:snapshots.map(s=>s.scores[name]!==undefined?s.scores[name]:null),
+      borderColor:teamColors[name]||'#888',
+      backgroundColor:'transparent',
+      borderWidth:2,
+      pointRadius:3,
+      tension:0.3,
+    }));
+    if(inst.current){
+      inst.current.data.labels=labels;
+      inst.current.data.datasets=datasets;
+      inst.current.update();
+    }else{
+      inst.current=new Chart(ref.current,{
+        type:'line',
+        data:{labels,datasets},
+        options:{
+          responsive:true,maintainAspectRatio:false,
+          interaction:{mode:'index',intersect:false},
+          plugins:{
+            legend:{display:false},
+            tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmt(c.parsed.y)}`}},
+          },
+          scales:{
+            x:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:11},color:'#888'}},
+            y:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:11},color:'#888',callback:v=>fmt(v)}},
+          },
+        }
+      });
+    }
+  },[snapshots]);
+
+  useEffect(()=>()=>{inst.current?.destroy();},[]);
+
+  return(
+    <div className="chart-wrap" style={{height:280}}><canvas ref={ref}></canvas></div>
+  );
+}
+
+function App(){
+  const [pScores,setPScores]=useState({});
+  const [cutSet,setCutSet]=useState(new Set());
+  const [lb,setLb]=useState([]);
+  const [roundsDone,setRoundsDone]=useState(2);
+  const [updated,setUpdated]=useState(null);
+  const [loading,setLoading]=useState(true);
+  const [err,setErr]=useState(null);
+  const [tab,setTab]=useState('standings');
+  const [sel,setSel]=useState(null);
+  const [snapshots,setSnapshots]=useState([]);
+  const snapsRef=useRef([]);
+
+  // Assign consistent colors to teams
+  const teamColors=TEAMS.reduce((acc,t,i)=>{acc[t.name]=PALETTE[i%PALETTE.length];return acc;},{});
+
+  // Seed snapshots with R1/R2 history using hardcoded rounds=1,2
+  useEffect(()=>{
+    const seeded=HISTORY_SEED.map((h,i)=>{
+      const fakeStandings=TEAMS.map(t=>({name:t.name,total:h.scores[t.name]??50})).sort((a,b)=>a.total-b.total);
+      const withProbs=calcProbs(fakeStandings, i+1);
+      const probs=Object.fromEntries(withProbs.map(t=>[t.name,t.prob]));
+      return{label:h.label,scores:h.scores,probs};
+    });
+    snapsRef.current=seeded;
+    setSnapshots(seeded);
+  },[]);
+
+  const addSnapshot=(currentStandings, rd, label)=>{
+    const withProbs=calcProbs(currentStandings, rd);
+    const probs=Object.fromEntries(withProbs.map(t=>[t.name,t.prob]));
+    const scores=Object.fromEntries(currentStandings.map(t=>[t.name,t.total]));
+    const snap={label,scores,probs};
+    // Don't duplicate if label same as last
+    const prev=snapsRef.current;
+    if(prev.length>0&&prev[prev.length-1].label===label)return;
+    const next=[...prev,snap];
+    snapsRef.current=next;
+    setSnapshots(next);
+  };
+
+  const fetchData=useCallback(async()=>{
+    try{
+      const r=await fetch('https://site.api.espn.com/apis/site/v2/sports/golf/leaderboard?league=pga');
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      const d=await r.json();
+      const comps=d.events?.[0]?.competitions?.[0]?.competitors||[];
+      const sc={};const cut=new Set();const list=[];
+      let maxRounds=2;
+      comps.forEach(c=>{
+        const name=c.athlete?.displayName;if(!name)return;
+        const k=norm(name);
+        const s=parse(c.score?.displayValue);
+        sc[k]=s;
+        const desc=(c.status?.type?.description||'').toLowerCase();
+        const nm=(c.status?.type?.name||'').toLowerCase();
+        const isCut=desc.includes('cut')||nm.includes('cut')||nm==='status_cut';
+        if(isCut)cut.add(k);
+        const rounds=(c.linescores||[]).filter(l=>l.value&&l.value>0).length;
+        if(rounds>maxRounds)maxRounds=rounds;
+        const thru=c.status?.displayClock||'';
+        list.push({name,k,s,cut:isCut,thru});
+      });
+      list.sort((a,b)=>a.s-b.s);
+      setPScores(sc);setCutSet(cut);setLb(list);
+      setRoundsDone(maxRounds);
+      setUpdated(new Date());setLoading(false);setErr(null);
+
+      // Compute current standings and add snapshot
+      const cur=TEAMS.map(t=>({name:t.name,...calcTeam(t.picks,sc,cut)})).sort((a,b)=>a.total-b.total);
+      const now=new Date();
+      const timeLabel=`R${maxRounds} ${now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`;
+      addSnapshot(cur,maxRounds,timeLabel);
+    }catch(e){
+      setErr('Live scores unavailable');setLoading(false);
+    }
+  },[]);
+
+  useEffect(()=>{fetchData();const t=setInterval(fetchData,90000);return()=>clearInterval(t);},[fetchData]);
+
+  const getP=name=>{
+    const k=norm(name);
+    if(cutSet.has(k))return{s:4,cut:true};
+    const s=pScores[k];
+    return{s:s!==undefined?s:null,cut:false};
+  };
+
+  const calcT=picks=>calcTeam(picks,pScores,cutSet);
+
+  const rawStandings=TEAMS.map(t=>({...t,...calcT(t.picks)})).sort((a,b)=>a.total-b.total);
+  const standings=calcProbs(rawStandings,roundsDone);
+  const selTeam=sel?standings.find(t=>t.name===sel):null;
+
+  return(
+    <div className="shell">
+      <div style={{borderBottom:'2px solid #1a5c2a',paddingBottom:'.9rem',marginBottom:'1.1rem'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:8}}>
+          <div>
+            <div style={{fontSize:10,letterSpacing:'.16em',color:'#6b7c5a',textTransform:'uppercase',marginBottom:3}}>Masters Tournament 2026 · 22 entries</div>
+            <h1 style={{fontSize:21,fontWeight:400,color:'#1a1a1a',lineHeight:1.2}}>The Long Journey Is Over</h1>
+          </div>
+          <div style={{textAlign:'right',paddingTop:2}}>
+            <div style={{fontSize:11,color:'#888',marginBottom:4}}>
+              {loading&&!updated?'Fetching…':updated?`${updated.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})} · R${roundsDone}`:'—'}
+            </div>
+            <button className="back" style={{margin:0}} onClick={fetchData}>↻ Refresh</button>
+          </div>
+        </div>
+        {err&&<div style={{fontSize:11,color:'#b85c00',marginTop:5}}>{err}</div>}
+      </div>
+
+      <div className="tabs">
+        {[['standings','Standings'],['charts','Charts'],['leaderboard','Players']].map(([v,lbl])=>(
+          <button key={v} className={`tab${tab===v?' on':''}`} onClick={()=>{setTab(v);setSel(null);}}>{lbl}</button>
+        ))}
+      </div>
+
+      {tab==='standings'&&!sel&&(
+        <div>
+          <div className="hdr-col" style={{display:'grid',gridTemplateColumns:'26px 1fr 50px 50px 56px',gap:'0 6px'}}>
+            <span>#</span><span>Team</span><span style={{textAlign:'right'}}>Score</span><span className="hide-sm" style={{textAlign:'right'}}>Gap</span><span style={{textAlign:'right'}}>Win %</span>
+          </div>
+          {standings.map((t,i)=>{
+            const gap=t.total-standings[0].total;
+            const isBob=t.name==='Augusta These Nuts';
+            return(
+              <div key={t.name}>
+                <div className={`row${isBob?' bob':''}`} style={{display:'grid',gridTemplateColumns:'26px 1fr 50px 50px 56px',gap:'0 6px'}} onClick={()=>setSel(t.name)}>
+                  <span style={{fontSize:12,color:'#999',fontStyle:'italic'}}>{i+1}</span>
+                  <span style={{fontSize:14,fontWeight:isBob?500:400}}>
+                    {t.name}
+                    {isBob&&<span className="pill">you</span>}
+                  </span>
+                  <span className={scCls(t.total)} style={{fontSize:15,textAlign:'right'}}>{fmt(t.total)}</span>
+                  <span className="hide-sm" style={{fontSize:12,textAlign:'right',color:'#999'}}>{gap===0?'—':`+${gap}`}</span>
+                  <span style={{fontSize:13,textAlign:'right',color:teamColors[t.name],fontWeight:500}}>{pct(t.prob)}</span>
+                </div>
+                <hr/>
+              </div>
+            );
+          })}
+          <div className="note">Top 10 scores count · Missed cut = +4 · Win % uses exponential decay model, sharpens each round · Click team to view picks</div>
+        </div>
+      )}
+
+      {tab==='standings'&&sel&&selTeam&&(
+        <div>
+          <button className="back" onClick={()=>setSel(null)}>← All teams</button>
+          <div style={{display:'flex',alignItems:'baseline',gap:10,marginBottom:'.9rem',flexWrap:'wrap'}}>
+            <span style={{fontSize:19}}>{selTeam.name}</span>
+            <span className={scCls(selTeam.total)} style={{fontSize:23}}>{fmt(selTeam.total)}</span>
+            <span style={{fontSize:13,color:'#888'}}>#{standings.findIndex(t=>t.name===sel)+1} · {pct(selTeam.prob)} win</span>
+          </div>
+          <div className="lbl">Counting — top 10</div>
+          {selTeam.top10.map((p,i)=>(
+            <div key={p.name} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:'0.5px solid #ddd'}}>
+              <span style={{fontSize:13,color:p.cut||p.miss?'#999':'#1a1a1a'}}>{i+1}. {p.name}{p.cut&&<span style={{fontSize:10,color:'#888',marginLeft:4}}>✂ cut</span>}</span>
+              <span className={scCls(p.s)} style={{fontSize:13}}>{p.cut?'+4':p.miss?'—':fmt(p.s)}</span>
+            </div>
+          ))}
+          {selTeam.bench.length>0&&<>
+            <div className="lbl" style={{marginTop:10}}>Benched</div>
+            {selTeam.bench.map(p=>(
+              <div key={p.name} style={{display:'flex',justifyContent:'space-between',padding:'4px 0',opacity:.5,borderBottom:'0.5px solid #e8e4da'}}>
+                <span style={{fontSize:12}}>{p.name}{p.cut&&<span style={{fontSize:10,marginLeft:4}}>✂</span>}</span>
+                <span className={scCls(p.s)} style={{fontSize:12}}>{p.cut?'+4':fmt(p.s)}</span>
+              </div>
+            ))}
+          </>}
+        </div>
+      )}
+
+      {tab==='charts'&&(
+        <div>
+          <div style={{fontSize:13,color:'#555',marginBottom:'1rem',lineHeight:1.6}}>
+            Win probability for the top 8 teams. Seeded from R1 & R2 results, then updated live every 90 seconds as R3/R4 play out. The model sharpens as fewer holes remain.
+          </div>
+          <div className="lbl" style={{marginBottom:8}}>Win probability over time — top 8</div>
+          <WinChart snapshots={snapshots} teamColors={teamColors}/>
+          <div className="lbl" style={{margin:'1.2rem 0 8px'}}>Team score over rounds — top 8</div>
+          <div style={{fontSize:11,color:'#888',marginBottom:6}}>Lower is better. Same 8 teams as above.</div>
+          <ScoreChart snapshots={snapshots} teamColors={teamColors}/>
+          <div className="note" style={{marginTop:'1rem'}}>
+            Charts accumulate snapshots throughout the session — reload resets live data but keeps R1/R2 seed. {snapshots.length} data points recorded.
+          </div>
+        </div>
+      )}
+
+      {tab==='leaderboard'&&(
+        <div>
+          <div className="hdr-col" style={{display:'grid',gridTemplateColumns:'26px 1fr 56px 44px',gap:'0 6px',marginBottom:3}}>
+            <span>#</span><span>Player</span><span style={{textAlign:'right'}}>Score</span><span className="hide-sm" style={{textAlign:'right'}}>Thru</span>
+          </div>
+          {lb.length===0&&<div style={{padding:'2rem',textAlign:'center',fontSize:13,color:'#888'}}>{loading?'Loading…':'No data.'}</div>}
+          {lb.map((p,i)=>(
+            <div key={p.name}>
+              <div style={{display:'grid',gridTemplateColumns:'26px 1fr 56px 44px',gap:'0 6px',padding:'6px 4px',alignItems:'center',opacity:p.cut?.45:1}}>
+                <span style={{fontSize:11,color:'#999',fontStyle:'italic'}}>{i+1}</span>
+                <span style={{fontSize:13}}>{p.name}{p.cut&&<span style={{fontSize:10,color:'#999',marginLeft:4}}>✂</span>}</span>
+                <span className={scCls(p.s)} style={{fontSize:13,textAlign:'right'}}>{fmt(p.s)}</span>
+                <span className="hide-sm" style={{fontSize:11,textAlign:'right',color:'#999'}}>{p.thru}</span>
+              </div>
+              <hr/>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{marginTop:'2.5rem',fontSize:10,color:'#bbb',textAlign:'center',letterSpacing:'.08em'}}>
+        Live scores via ESPN · Masters Tournament 2026 · Augusta National GC
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

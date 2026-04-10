@@ -485,11 +485,11 @@ function App(){
             const isBob=t.name==='Augusta These Nuts';
             return(
               <div key={t.name}>
-                <div className={`row${isBob?' bob':''}`} style={{display:'grid',gridTemplateColumns:'26px 1fr 50px 50px 56px',gap:'0 6px'}} onClick={()=>setSel(t.name)}>
+                <div className="row" style={{display:'grid',gridTemplateColumns:'26px 1fr 50px 50px 56px',gap:'0 6px'}} onClick={()=>setSel(t.name)}>
                   <span style={{fontSize:12,color:'#999',fontStyle:'italic'}}>{i+1}</span>
                   <span style={{fontSize:14,fontWeight:isBob?500:400}}>
                     {t.name}
-                    {isBob&&<span className="pill">you</span>}
+                    
                   </span>
                   <span className={scCls(t.total)} style={{fontSize:15,textAlign:'right'}}>{fmt(t.total)}</span>
                   <span className="hide-sm" style={{fontSize:12,textAlign:'right',color:'#999'}}>{gap===0?'—':`+${gap}`}</span>
@@ -542,9 +542,9 @@ function App(){
           <ScoreChart snapshots={snapshots} teamColors={teamColors}/>
           <div style={{borderTop:'1px solid #d0ccc0',margin:'1.5rem 0 1rem',paddingTop:'1rem'}}>
             <div style={{fontSize:13,color:'#555',marginBottom:'.75rem',lineHeight:1.6}}>
-              The battle for last. Bottom 5 teams riding in the caboose.
+              The battle for last. Bottom 5 teams fighting to avoid finishing the week staring at the back nine.
             </div>
-            <div className="lbl" style={{marginBottom:8}}>The bottom 5</div>
+            <div className="lbl" style={{marginBottom:8}}>The Back Nine — bottom 5</div>
             <WoodenSpoonChart snapshots={snapshots} teamColors={teamColors}/>
           </div>
           <div className="note" style={{marginTop:'1rem'}}>
